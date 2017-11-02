@@ -53,12 +53,15 @@ const Dropdown = (($) => {
     MENULEFT  : 'dropdown-menu-left'
   }
 
+  // DROPDOWN_SHOWN exclude our other plugins which use .show class
   const Selector = {
-    DATA_TOGGLE   : '[data-toggle="dropdown"]',
-    FORM_CHILD    : '.dropdown form',
-    MENU          : '.dropdown-menu',
-    NAVBAR_NAV    : '.navbar-nav',
-    VISIBLE_ITEMS : '.dropdown-menu .dropdown-item:not(.disabled)'
+    DATA_TOGGLE    : '[data-toggle="dropdown"]',
+    FORM_CHILD     : '.dropdown form',
+    MENU           : '.dropdown-menu',
+    NAVBAR_NAV     : '.navbar-nav',
+    VISIBLE_ITEMS  : `.dropdown-menu .dropdown-item:not(.${ClassName.DISABLED})`,
+    ACTIVE_ITEMS   : `.dropdown-item:not(.${ClassName.DISABLED})`,
+    DROPDOWN_SHOWN : `.${ClassName.SHOW}:not(.dropdown-menu):not(.alert):not(.collapse):not(.modal):not(.popover):not(.tab-pane):not(.tooltip)`
   }
 
   const AttachmentMap = {
@@ -414,7 +417,14 @@ const Dropdown = (($) => {
         return
       }
 
-      const parent   = Dropdown._getParentFromElement(this)
+      let parent   = Dropdown._getParentFromElement(this)
+      let dropdown = $(parent).children(Selector.DATA_TOGGLE)[0]
+      if (typeof dropdown === 'undefined') {
+        parent = $(parent).find(Selector.DROPDOWN_SHOWN)[0]
+        if (typeof parent !== 'undefined') {
+          dropdown = $(parent).children(Selector.DATA_TOGGLE)[0]
+        }
+      }
       const isActive = $(parent).hasClass(ClassName.SHOW)
 
       if (!isActive && (event.which !== ESCAPE_KEYCODE || event.which !== SPACE_KEYCODE) ||
@@ -429,7 +439,13 @@ const Dropdown = (($) => {
         return
       }
 
-      const items = $(parent).find(Selector.VISIBLE_ITEMS).get()
+      const context  = $(dropdown).data(DATA_KEY)
+      let items      = null
+      if (context._config.container && Util.isElement(context._config.container)) {
+        items = $(context._menu).find(Selector.ACTIVE_ITEMS).get()
+      } else {
+        items = $(parent).find(Selector.VISIBLE_ITEMS).get()
+      }
 
       if (!items.length) {
         return
